@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QAction, QTableW
 from PyQt5 import uic, QtCore
 from PyQt5.QtGui import QIcon, QPixmap
 
-qtCreatorFile = "MyUI.ui" # Enter file here.
+qtCreatorFile = "ui/yelp-pyqt-app.ui" # Enter file here.
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 
