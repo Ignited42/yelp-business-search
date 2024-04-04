@@ -6,3 +6,9 @@ The dataset can be retrieved from the following link: https://www.yelp.com/datas
 
 ## Authors
 This project is developed by Steven Subianto and Chetanye Maheshwari for Washington State University, under the instruction of Prof. Srinivasulu Badri.
+
+## Project Details
+This project is developed using the following libraries:
+- PyQT5
+- pSQL
+- psycopg2
