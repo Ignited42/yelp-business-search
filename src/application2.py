@@ -28,6 +28,7 @@ class myApp(QMainWindow):
         self.ui.comboBox_State2.currentTextChanged.connect(self.stateValueChanged)
         self.ui.listWidget_City2.itemSelectionChanged.connect(self.cityValueChanged)
         self.ui.listWidget_Zipcode.itemSelectionChanged.connect(self.zipCodeValueChanged)
+        self.ui.lineEdit_BusinessName.textChanged.connect(self.businessNameSearchChanged)
 
     def executeSQLQuery(self,sql_str):
         try:
@@ -127,7 +128,7 @@ class myApp(QMainWindow):
                 print("Zipcode query has failed!")
 
             # Fill in business table
-            sql_str = "SELECT name, city, state FROM business WHERE state = '" + state + \
+            sql_str = "SELECT name, city, state, zipcode FROM business WHERE state = '" + state + \
                         "' AND city = '" + city + "' ORDER BY name;"            
 
             try:
@@ -163,6 +164,7 @@ class myApp(QMainWindow):
 
             sql_str = "SELECT name, city, state, zipcode FROM business WHERE state = '" + state + \
                         "' AND city = '" + city + "' AND zipcode = '" + zipcode + "' ORDER BY name;"
+            
             try:
                 result = self.executeSQLQuery(sql_str)
                 self.ui.tableWidget_Business2.setColumnCount(len(result[0]))
@@ -186,6 +188,41 @@ class myApp(QMainWindow):
                     rowCount += 1
             except:
                 print("Zipcode filter has failed!")
+        
+    def businessNameSearchChanged(self):
+        if (len(self.ui.listWidget_Zipcode.selectedItems()) > 0):
+            zipcode = self.ui.listWidget_Zipcode.selectedItems()[0].text()
+
+            businessName = self.ui.lineEdit_BusinessName.text()
+            
+            sql_str = "SELECT name, city, state, zipcode FROM business WHERE zipcode = '" + zipcode + \
+                "' AND name like '" + businessName + "%' ORDER BY name;"
+            
+            try:
+                result = self.executeSQLQuery(sql_str)
+                self.ui.tableWidget_Business2.setColumnCount(len(result[0]))
+                self.ui.tableWidget_Business2.setRowCount(len(result))
+
+                # Style table
+                headerStyle = "::section { background-color: rgb(200,200,200); }"
+                self.ui.tableWidget_Business2.horizontalHeader().setStyleSheet(headerStyle)
+                self.ui.tableWidget_Business2.setHorizontalHeaderLabels(['Business Name', 'City', 'State', 'Zipcode'])
+                self.ui.tableWidget_Business2.resizeColumnsToContents()
+                self.ui.tableWidget_Business2.setColumnWidth(0,300)
+                self.ui.tableWidget_Business2.setColumnWidth(1,100)
+                self.ui.tableWidget_Business2.setColumnWidth(2,50)
+                self.ui.tableWidget_Business2.setColumnWidth(3,80)
+
+                # Fill table with the items
+                rowCount = 0
+                for row in result:
+                    for colCount in range(0,len(result[0])):
+                        self.ui.tableWidget_Business2.setItem(rowCount,colCount,QTableWidgetItem(row[colCount]))
+                    rowCount += 1
+            except:
+                print("Zipcode filter has failed!")
+
+        return
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
