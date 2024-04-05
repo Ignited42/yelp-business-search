@@ -25,8 +25,3 @@ CREATE TABLE CheckinLogs(
     Checkin_time VARCHAR(5),
     Business_id CHAR(22) REFERENCES Business(Business_id)
 );
-
--- UPDATE dup_business
--- SET numCheckins = (SELECT sum FROM numcheckins WHERE numcheckins.business_id = dup_business.business_id),
---     reviewcount = (SELECT count FROM reviewcount WHERE reviewcount.business_id = dup_business.business_id),
---     reviewrating = (SELECT average_rating FROM reviewrating WHERE reviewrating.business_id = dup_business.business_id);
