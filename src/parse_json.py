@@ -1,5 +1,13 @@
 import json
+import psycopg2 as psy2
+import psycopg2.extras as psy2b
 
+try:
+    infile = open("bin/password.txt", "r")
+    password_string = infile.read()
+    infile.close()
+except:
+    print("Create a file named 'password.txt' in the bin folder and type your pSQL password into it!")
 
 def cleanStr4SQL(s):
     return s.replace("'","''").replace("\n"," ")
@@ -13,134 +21,196 @@ def getAttributes(attributes):
             L.append((attribute,value))
     return L
 
+#==========================================================================================================
+
 def parseBusinessData():
+    """
+    Parses the yelp_business.JSON file and inputs tuples into the 
+    'business' table of our SQL database.
+    """
+
     print("Parsing businesses...")
     #read the JSON file
     with open('./dataset/Yelp-CptS451/yelp_business.JSON','r') as f:
-        outfile =  open('./output/yelp_business.txt', 'w')
         line = f.readline()
         count_line = 0
+
+        # Open connection to database
+        try:
+            pysql_string = "dbname='yelpdb' user='postgres' host='localhost' password='" + password_string + "'"
+            conn = psy2.connect(pysql_string)
+        except RuntimeError as error:
+            print(error)
+            print("Unable to connect to database!")
+
+        sql_batchTuple = []
+        curr = conn.cursor()
+
+        sql_str = \
+            """INSERT INTO business(Business_id, Name, Address, City, State, Zipcode, Total_Checkin, Num_review, Business_rating)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+
         #read each JSON abject and extract data
         while line:
             data = json.loads(line)
-            business = data['business_id'] #business id
-            business_str =  "'" + cleanStr4SQL(data['name']) + "'," + \
-                            "'" + cleanStr4SQL(data['address']) + "'," + \
-                            "'" + cleanStr4SQL(data['city']) + "'," +  \
-                            "'" + data['state'] + "'," + \
-                            "'" + data['postal_code'] + "'," +  \
-                            str(data['latitude']) + "," +  \
-                            str(data['longitude']) + "," + \
-                            str(data['stars']) + "," + \
-                            str(data['review_count']) + "," + \
-                            str(data['is_open'])
-            outfile.write(business_str + '\n')
 
-            # process business categories
-            for category in data['categories']:
-                category_str = "'" + business + "','" + category + "'"
-                outfile.write(category_str + '\n')
+            sql_tuple = (data['business_id'], cleanStr4SQL(data['name']), cleanStr4SQL(data['address']), \
+                         cleanStr4SQL(data['city']), data['state'], data['postal_code'], 0, 0, 0.0)
 
-            # process business hours
-            for (day,hours) in data['hours'].items():
-                hours_str = "'" + business + "','" + str(day) + "','" + str(hours.split('-')[0]) + "','" + str(hours.split('-')[1]) + "'"
-                outfile.write( hours_str +'\n')
-
-            #process business attributes
-            for (attr,value) in getAttributes(data['attributes']):
-                attr_str = "'" + business + "','" + str(attr) + "','" + str(value)  + "'"
-                outfile.write(attr_str +'\n')
+            sql_batchTuple.append(sql_tuple)
 
             line = f.readline()
             count_line +=1
+
+            if (count_line % 20 == 0):
+                psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+                sql_batchTuple = []
+                conn.commit()
+        psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+        conn.commit()  
     print(count_line)
-    outfile.close()
     f.close()
 
-
-def parseReviewData():
-    print("Parsing reviews...")
-    #reading the JSON file
-    with open('./dataset/Yelp-CptS451/yelp_review.JSON','r') as f:
-        outfile =  open('./output/yelp_review.txt', 'w')
-        line = f.readline()
-        count_line = 0
-        failed_inserts = 0
-        while line:
-            data = json.loads(line)
-            review_str = "'" + data['review_id'] + "'," +  \
-                         "'" + data['user_id'] + "'," + \
-                         "'" + data['business_id'] + "'," + \
-                         str(data['stars']) + "," + \
-                         "'" + data['date'] + "'," + \
-                         "'" + cleanStr4SQL(data['text']) + "'," +  \
-                         str(data['useful']) + "," +  \
-                         str(data['funny']) + "," + \
-                         str(data['cool'])
-            outfile.write(review_str +'\n')
-            line = f.readline()
-            count_line +=1
-
-    print(count_line)
-    outfile.close()
-    f.close()
+#==========================================================================================================
 
 def parseUserData():
+    """
+    Parses the yelp_user.JSON file and inputs tuples into the 
+    'user' table of our SQL database.
+    """
     print("Parsing users...")
     #reading the JSON file
     with open('./dataset/Yelp-CptS451/yelp_user.JSON','r') as f:
-        outfile =  open('./output/yelp_user.txt', 'w')
         line = f.readline()
         count_line = 0
+
+        # Open connection to database
+        try:
+            pysql_string = "dbname='yelpdb' user='postgres' host='localhost' password='" + password_string + "'"
+            conn = psy2.connect(pysql_string)
+        except RuntimeError as error:
+            print(error)
+            print("Unable to connect to database!")
+        
+        sql_batchTuple = []
+        curr = conn.cursor()
+        
+        sql_str = \
+            """INSERT INTO yelpuser(user_id, name)
+            VALUES (%s, %s)"""
+
         while line:
             data = json.loads(line)
-            user_id = data['user_id']
-            user_str = \
-                      "'" + user_id + "'," + \
-                      "'" + cleanStr4SQL(data["name"]) + "'," + \
-                      "'" + cleanStr4SQL(data["yelping_since"]) + "'," + \
-                      str(data["review_count"]) + "," + \
-                      str(data["fans"]) + "," + \
-                      str(data["average_stars"]) + "," + \
-                      str(data["funny"]) + "," + \
-                      str(data["useful"]) + "," + \
-                      str(data["cool"])
-            outfile.write(user_str+"\n")
 
-            for friend in data["friends"]:
-                friend_str = "'" + user_id + "'" + "," + "'" + friend + "'" + "\n"
-                outfile.write(friend_str)
+            sql_tuple = (data['user_id'], (data["name"]))
+            sql_batchTuple.append(sql_tuple)
+
             line = f.readline()
             count_line +=1
 
+            if (count_line % 100 == 0):
+                psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+                sql_batchTuple = []
+                conn.commit()
+        psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+        conn.commit()  
     print(count_line)
-    outfile.close()
     f.close()
 
+#==========================================================================================================
+
 def parseCheckinData():
+    """
+    Parses the yelp_checkin.JSON file and inputs tuples into the 
+    'checkinlogs' table of our SQL database.
+    """
     print("Parsing checkins...")
     #reading the JSON file
-    with open('./dataset/Yelp-CptS451/yelp_checkin.JSON','r') as f:  # Assumes that the data files are available in the current directory. If not, you should set the path for the yelp data files.
-        outfile = open('./output/yelp_checkin.txt', 'w')
+    with open('./dataset/Yelp-CptS451/yelp_checkin.JSON','r') as f:
         line = f.readline()
         count_line = 0
+
+        # Open connection to database
+        try:
+            pysql_string = "dbname='yelpdb' user='postgres' host='localhost' password='" + password_string + "'"
+            conn = psy2.connect(pysql_string)
+        except RuntimeError as error:
+            print(error)
+            print("Unable to connect to database!")
+        
+        sql_batchTuple = []
+        curr = conn.cursor()
+        
+        sql_str = \
+            """INSERT INTO checkinlogs(checkin_count, checkin_day, checkin_time, business_id)
+            VALUES (%s, %s, %s, %s)"""
+
         #read each JSON abject and extract data
         while line:
             data = json.loads(line)
             business_id = data['business_id']
             for (dayofweek,time) in data['time'].items():
                 for (hour,count) in time.items():
-                    checkin_str = "'" + business_id + "',"  \
-                                  "'" + dayofweek + "'," + \
-                                  "'" + hour + "'," + \
-                                  str(count)
-                    outfile.write(checkin_str + "\n")
+                    sql_tuple = (str(count), dayofweek, hour, business_id)
+                    sql_batchTuple.append(sql_tuple)
+
             line = f.readline()
             count_line +=1
-        print(count_line)
-    outfile.close()
+
+            if (count_line % 200 == 0):
+                psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+                sql_batchTuple = []
+                conn.commit()
+        psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+        conn.commit()  
+    print(count_line)
     f.close()
 
+#==========================================================================================================
+
+def parseReviewData():
+    """
+    Parses the yelp_review.JSON file and inputs tuples into the 
+    'review' table of our SQL database.
+    """
+    print("Parsing reviews...")
+    #reading the JSON file
+    with open('./dataset/Yelp-CptS451/yelp_review.JSON','r') as f:
+        line = f.readline()
+        count_line = 0
+
+        # Open connection to database
+        try:
+            pysql_string = "dbname='yelpdb' user='postgres' host='localhost' password='" + password_string + "'"
+            conn = psy2.connect(pysql_string)
+        except RuntimeError as error:
+            print(error)
+            print("Unable to connect to database!")
+        
+        sql_batchTuple = []
+        curr = conn.cursor()
+
+        sql_str = \
+            """INSERT INTO review(review_id, user_id, rating, business_id)
+            VALUES (%s, %s, %s, %s)"""
+        
+        while line:
+            data = json.loads(line)
+
+            sql_tuple = (data['review_id'], data['user_id'], data['stars'], data['business_id'])
+            sql_batchTuple.append(sql_tuple)
+
+            line = f.readline()
+            count_line +=1
+
+            if (count_line % 2000 == 0):
+                psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+                sql_batchTuple = []
+                conn.commit()
+        psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+        conn.commit()  
+    print(count_line)
+    f.close()
 
 parseBusinessData()
 parseUserData()
