@@ -20,6 +20,7 @@ CREATE TABLE YelpUser(
     Name VARCHAR(40) NOT NULL
 );
 CREATE TABLE CheckinLogs(
+    Checkin_id INT PRIMARY KEY,
     Checkin_count INT,
     Checkin_day VARCHAR(9),
     Checkin_time VARCHAR(5),
