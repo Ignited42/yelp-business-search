@@ -73,6 +73,55 @@ def parseBusinessData():
 
 #==========================================================================================================
 
+def parseBusinessCategories():
+    """
+    Parses the yelp_business.JSON file and inputs tuples into the 
+    'categories' table of our SQL database.
+    """
+    print("Parsing businesses...")
+    #read the JSON file
+    with open('./dataset/Yelp-CptS451/yelp_business.JSON','r') as f:
+        line = f.readline()
+        count_line = 0
+
+        # Open connection to database
+        try:
+            pysql_string = "dbname='yelpdb' user='postgres' host='localhost' password='" + password_string + "'"
+            conn = psy2.connect(pysql_string)
+        except RuntimeError as error:
+            print(error)
+            print("Unable to connect to database!")
+
+        sql_batchTuple = []
+        id = 0
+        curr = conn.cursor()
+
+        sql_str = \
+            """INSERT INTO categories(relation_id, business_id, category_name) VALUES (%s, %s, %s)"""
+
+        #read each JSON abject and extract data
+        while line:
+            data = json.loads(line)
+
+            for category in data['categories']:
+                sql_tuple = (id, data['business_id'], category)
+                sql_batchTuple.append(sql_tuple)
+                id += 1
+
+            line = f.readline()
+            count_line +=1
+
+            if (count_line % 100 == 0):
+                psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+                sql_batchTuple = []
+                conn.commit()
+        psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+        conn.commit()  
+    print(count_line)
+    f.close()
+
+#==========================================================================================================
+
 def parseUserData():
     """
     Parses the yelp_user.JSON file and inputs tuples into the 
@@ -217,7 +266,9 @@ def parseReviewData():
 
 if __name__ == "__main__":
     # parseBusinessData()
+    parseBusinessCategories()
     # parseUserData()
-    parseCheckinData()
+    # parseCheckinData()
     # parseReviewData()
 
+    quit()
