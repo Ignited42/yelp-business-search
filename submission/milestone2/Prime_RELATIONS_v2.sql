@@ -5,6 +5,7 @@ CREATE TABLE Business(
     City VARCHAR(30),
     State CHAR(2),
     Zipcode CHAR(5),
+    Stars FLOAT,
     Total_checkin INT,
     Num_review INT,
     Business_rating FLOAT
@@ -20,8 +21,14 @@ CREATE TABLE YelpUser(
     Name VARCHAR(40) NOT NULL
 );
 CREATE TABLE CheckinLogs(
+    Checkin_id INT PRIMARY KEY,
     Checkin_count INT,
     Checkin_day VARCHAR(9),
     Checkin_time VARCHAR(5),
     Business_id CHAR(22) REFERENCES Business(Business_id)
+);
+CREATE TABLE Categories(
+    Relation_id INT PRIMARY KEY,
+    Business_id CHAR(22) REFERENCES Business(Business_id),
+    Category_name VARCHAR(50)
 );

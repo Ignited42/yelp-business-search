@@ -73,6 +73,102 @@ def parseBusinessData():
 
 #==========================================================================================================
 
+def parseBusinessCategories():
+    """
+    Parses the yelp_business.JSON file and inputs tuples into the 
+    'categories' table of our SQL database.
+    """
+    print("Parsing businesses...")
+    #read the JSON file
+    with open('./dataset/Yelp-CptS451/yelp_business.JSON','r') as f:
+        line = f.readline()
+        count_line = 0
+
+        # Open connection to database
+        try:
+            pysql_string = "dbname='yelpdb' user='postgres' host='localhost' password='" + password_string + "'"
+            conn = psy2.connect(pysql_string)
+        except RuntimeError as error:
+            print(error)
+            print("Unable to connect to database!")
+
+        sql_batchTuple = []
+        id = 0
+        curr = conn.cursor()
+
+        sql_str = \
+            """INSERT INTO categories(relation_id, business_id, category_name) VALUES (%s, %s, %s)"""
+
+        #read each JSON abject and extract data
+        while line:
+            data = json.loads(line)
+
+            for category in data['categories']:
+                sql_tuple = (id, data['business_id'], category)
+                sql_batchTuple.append(sql_tuple)
+                id += 1
+
+            line = f.readline()
+            count_line +=1
+
+            if (count_line % 100 == 0):
+                psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+                sql_batchTuple = []
+                conn.commit()
+        psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+        conn.commit()  
+    print(count_line)
+    f.close()
+
+#==========================================================================================================
+
+def parseBusinessStars():
+    """
+    Updates the Business table to include the "stars" data.
+    """
+
+    print("Parsing businesses...")
+    #read the JSON file
+    with open('./dataset/Yelp-CptS451/yelp_business.JSON','r') as f:
+        line = f.readline()
+        count_line = 0
+
+        # Open connection to database
+        try:
+            pysql_string = "dbname='yelpdb' user='postgres' host='localhost' password='" + password_string + "'"
+            conn = psy2.connect(pysql_string)
+        except RuntimeError as error:
+            print(error)
+            print("Unable to connect to database!")
+
+        sql_batchTuple = []
+        curr = conn.cursor()
+
+        sql_str = \
+            """UPDATE business SET stars = %s where business_id = %s"""
+
+        #read each JSON abject and extract data
+        while line:
+            data = json.loads(line)
+
+            sql_tuple = (data['stars'], data['business_id'])
+
+            sql_batchTuple.append(sql_tuple)
+
+            line = f.readline()
+            count_line +=1
+
+            if (count_line % 100 == 0):
+                psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+                sql_batchTuple = []
+                conn.commit()
+        psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+        conn.commit()  
+    print(count_line)
+    f.close()
+
+#==========================================================================================================
+
 def parseUserData():
     """
     Parses the yelp_user.JSON file and inputs tuples into the 
@@ -142,8 +238,10 @@ def parseCheckinData():
         curr = conn.cursor()
         
         sql_str = \
-            """INSERT INTO checkinlogs(checkin_count, checkin_day, checkin_time, business_id)
-            VALUES (%s, %s, %s, %s)"""
+            """INSERT INTO checkinlogs(checkin_id, checkin_count, checkin_day, checkin_time, business_id)
+            VALUES (%s, %s, %s, %s, %s)"""
+        
+        id = 0
 
         #read each JSON abject and extract data
         while line:
@@ -151,11 +249,12 @@ def parseCheckinData():
             business_id = data['business_id']
             for (dayofweek,time) in data['time'].items():
                 for (hour,count) in time.items():
-                    sql_tuple = (str(count), dayofweek, hour, business_id)
+                    sql_tuple = (str(id), str(count), dayofweek, hour, business_id)
                     sql_batchTuple.append(sql_tuple)
+                    id += 1
 
             line = f.readline()
-            count_line +=1
+            count_line += 1
 
             if (count_line % 200 == 0):
                 psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
@@ -212,8 +311,12 @@ def parseReviewData():
     print(count_line)
     f.close()
 
-parseBusinessData()
-parseUserData()
-parseCheckinData()
-parseReviewData()
+if __name__ == "__main__":
+    # parseBusinessData()
+    # parseBusinessCategories()
+    parseBusinessStars()
+    # parseUserData()
+    # parseCheckinData()
+    # parseReviewData()
 
+    # quit()
