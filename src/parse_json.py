@@ -122,6 +122,53 @@ def parseBusinessCategories():
 
 #==========================================================================================================
 
+def parseBusinessStars():
+    """
+    Updates the Business table to include the "stars" data.
+    """
+
+    print("Parsing businesses...")
+    #read the JSON file
+    with open('./dataset/Yelp-CptS451/yelp_business.JSON','r') as f:
+        line = f.readline()
+        count_line = 0
+
+        # Open connection to database
+        try:
+            pysql_string = "dbname='yelpdb' user='postgres' host='localhost' password='" + password_string + "'"
+            conn = psy2.connect(pysql_string)
+        except RuntimeError as error:
+            print(error)
+            print("Unable to connect to database!")
+
+        sql_batchTuple = []
+        curr = conn.cursor()
+
+        sql_str = \
+            """UPDATE business SET stars = %s where business_id = %s"""
+
+        #read each JSON abject and extract data
+        while line:
+            data = json.loads(line)
+
+            sql_tuple = (data['stars'], data['business_id'])
+
+            sql_batchTuple.append(sql_tuple)
+
+            line = f.readline()
+            count_line +=1
+
+            if (count_line % 100 == 0):
+                psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+                sql_batchTuple = []
+                conn.commit()
+        psy2b.execute_batch(curr, sql_str, tuple(sql_batchTuple))
+        conn.commit()  
+    print(count_line)
+    f.close()
+
+#==========================================================================================================
+
 def parseUserData():
     """
     Parses the yelp_user.JSON file and inputs tuples into the 
@@ -266,9 +313,10 @@ def parseReviewData():
 
 if __name__ == "__main__":
     # parseBusinessData()
-    parseBusinessCategories()
+    # parseBusinessCategories()
+    parseBusinessStars()
     # parseUserData()
     # parseCheckinData()
     # parseReviewData()
 
-    quit()
+    # quit()
